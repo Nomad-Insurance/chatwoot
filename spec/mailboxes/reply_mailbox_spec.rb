@@ -379,12 +379,18 @@ RSpec.describe ReplyMailbox do
     end
   end
 
-  describe 'when a chatwoot notification email is received' do
+  describe 'when a notification email is received' do
     let(:account) { create(:account) }
     let!(:channel_email) { create(:channel_email, email: 'sojan@chatwoot.com', account: account) }
     let(:notification_mail) { create_inbound_email_from_fixture('notification.eml') }
     let(:described_subject) { described_class.receive notification_mail }
     let(:conversation) { Conversation.where(inbox_id: channel_email.inbox).last }
+
+    around do |example|
+      with_modified_env MAILER_SENDER_EMAIL: 'Chatwoot <accounts@chatwoot.com>' do
+        example.run
+      end
+    end
 
     it 'shouldnt create a conversation in the channel' do
       described_subject
