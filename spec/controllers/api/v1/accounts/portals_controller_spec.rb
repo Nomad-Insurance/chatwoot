@@ -376,8 +376,10 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
       end
 
       it 'sends instructions successfully' do
+        parameterized_mailer = double
         mailer_double = instance_double(ActionMailer::MessageDelivery)
-        allow(PortalInstructionsMailer).to receive(:send_cname_instructions).and_return(mailer_double)
+        allow(PortalInstructionsMailer).to receive(:with).with(account: account).and_return(parameterized_mailer)
+        allow(parameterized_mailer).to receive(:send_cname_instructions).and_return(mailer_double)
         allow(mailer_double).to receive(:deliver_later)
 
         post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
@@ -387,7 +389,8 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body['message']).to eq('Instructions sent successfully')
-        expect(PortalInstructionsMailer).to have_received(:send_cname_instructions)
+        expect(PortalInstructionsMailer).to have_received(:with).with(account: account)
+        expect(parameterized_mailer).to have_received(:send_cname_instructions)
           .with(portal: portal_with_domain, recipient_email: 'dev@example.com')
       end
     end
