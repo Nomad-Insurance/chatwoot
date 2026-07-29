@@ -78,7 +78,7 @@ class BrandingConfig
   private
 
   def value_for(global_key, account_value)
-    account_value.presence || @global_config[global_key].presence
+    account_value.presence || @global_config[global_key]
   end
 
   def attachment_url_or_global(attachment, global_key)

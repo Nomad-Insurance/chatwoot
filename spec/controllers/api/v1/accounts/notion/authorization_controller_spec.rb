@@ -41,7 +41,7 @@ RSpec.describe 'Notion Authorization API', type: :request do
         expect(url).to start_with('https://api.notion.com/v1/oauth/authorize')
         expect(params['response_type']).to eq(['code'])
         expect(params['owner']).to eq(['user'])
-        expect(params['redirect_uri']).to eq(["#{ENV.fetch('FRONTEND_URL', 'http://localhost:3000')}/notion/callback"])
+        expect(params['redirect_uri']).to eq(["#{request.base_url}/notion/callback"])
 
         # Validate state parameter exists and can be decoded back to the account
         expect(params['state']).to be_present

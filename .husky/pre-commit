@@ -1,8 +1,8 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-# lint js and vue files
-npx --no-install lint-staged
+# Run staged lint tasks serially to avoid exhausting memory on large commits.
+npx --no-install lint-staged --concurrent false
 
 # lint only staged ruby files that still exist (not deleted)
 git diff --name-only --cached | xargs -I {} sh -c 'test -f "{}" && echo "{}"' | grep '\.rb$' | xargs -I {} bundle exec rubocop --force-exclusion -a "{}" || true

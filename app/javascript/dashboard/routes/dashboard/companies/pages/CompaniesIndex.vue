@@ -1,46 +1,65 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useAlert } from 'dashboard/composables';
 import { debounce } from '@chatwoot/utils';
+import { useCompaniesStore } from 'dashboard/stores/companies';
 
 import CompaniesListLayout from 'dashboard/components-next/Companies/CompaniesListLayout.vue';
 import CompaniesCard from 'dashboard/components-next/Companies/CompaniesCard/CompaniesCard.vue';
+import CompanyCreateDialog from 'dashboard/components-next/Companies/CompanyCreateDialog.vue';
 
+const DEFAULT_SORT_FIELD = 'name';
 const DEBOUNCE_DELAY = 300;
 
-const store = useStore();
+const companiesStore = useCompaniesStore();
+
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 
+const { updateUISettings, uiSettings } = useUISettings();
+
+const companies = computed(() => companiesStore.getCompaniesList);
+const meta = computed(() => companiesStore.getMeta);
+const uiFlags = computed(() => companiesStore.getUIFlags);
+
 const searchQuery = computed(() => route.query?.search || '');
 const searchValue = ref(searchQuery.value);
+const createCompanyDialogRef = ref(null);
 const pageNumber = computed(() => Number(route.query?.page) || 1);
 
-const activeSort = computed(() => {
-  const sortParam = route.query?.sort || 'name';
-  return sortParam.startsWith('-') ? sortParam.slice(1) : sortParam;
+const parseSortSettings = (sortString = '') => {
+  const hasDescending = sortString.startsWith('-');
+  const sortField = hasDescending ? sortString.slice(1) : sortString;
+  return {
+    sort: sortField || DEFAULT_SORT_FIELD,
+    order: hasDescending ? '-' : '',
+  };
+};
+
+const { companies_sort_by: companySortBy = DEFAULT_SORT_FIELD } =
+  uiSettings.value ?? {};
+const { sort: initialSort, order: initialOrder } =
+  parseSortSettings(companySortBy);
+
+const sortState = reactive({
+  activeSort: initialSort,
+  activeOrdering: initialOrder,
 });
 
-const activeOrdering = computed(() => {
-  const sortParam = route.query?.sort || 'name';
-  return sortParam.startsWith('-') ? '-' : '';
-});
-
-const companies = useMapGetter('companies/getCompaniesList');
-const meta = useMapGetter('companies/getMeta');
-const uiFlags = useMapGetter('companies/getUIFlags');
+const activeSort = computed(() => sortState.activeSort);
+const activeOrdering = computed(() => sortState.activeOrdering);
 
 const isFetchingList = computed(() => uiFlags.value.fetchingList);
+const isCreatingCompany = computed(() => uiFlags.value.creatingItem);
 
-const sortParam = computed(() => {
-  return activeOrdering.value === '-'
-    ? `-${activeSort.value}`
-    : activeSort.value;
-});
+const buildSortAttr = () =>
+  `${sortState.activeOrdering}${sortState.activeSort}`;
+
+const sortParam = computed(() => buildSortAttr());
 
 const updateURLParams = (page, search = '', sort = '') => {
   const query = {
@@ -74,13 +93,13 @@ const fetchCompanies = async (page, search, sort) => {
   }
 
   if (currentSearch) {
-    await store.dispatch('companies/search', {
+    await companiesStore.search({
       search: currentSearch,
       page: currentPage,
       sort: currentSort,
     });
   } else {
-    await store.dispatch('companies/get', {
+    await companiesStore.get({
       page: currentPage,
       sort: currentSort,
     });
@@ -96,13 +115,48 @@ const onPageChange = page => {
   fetchCompanies(page, searchValue.value, sortParam.value);
 };
 
-const handleSort = ({ sort, order }) => {
-  const newSortParam = order === '-' ? `-${sort}` : sort;
-  fetchCompanies(1, searchValue.value, newSortParam);
+const showCompany = companyId => {
+  router.push({
+    name: 'companies_dashboard_show',
+    params: {
+      accountId: route.params.accountId,
+      companyId,
+    },
+  });
+};
+
+const openCreateCompanyDialog = () => {
+  createCompanyDialogRef.value?.dialogRef.open();
+};
+
+const createCompany = async company => {
+  try {
+    const newCompany = await companiesStore.create(company);
+    createCompanyDialogRef.value?.onSuccess();
+    useAlert(t('COMPANIES.CREATE.MESSAGES.SUCCESS'));
+    showCompany(newCompany.id);
+  } catch {
+    useAlert(t('COMPANIES.CREATE.MESSAGES.ERROR'));
+  }
+};
+
+const handleSort = async ({ sort, order }) => {
+  Object.assign(sortState, { activeSort: sort, activeOrdering: order });
+
+  await updateUISettings({
+    companies_sort_by: buildSortAttr(),
+  });
+
+  fetchCompanies(1, searchValue.value, buildSortAttr());
 };
 
 onMounted(() => {
   searchValue.value = searchQuery.value;
+
+  if (!route.query.sort && sortParam.value !== DEFAULT_SORT_FIELD) {
+    updateURLParams(pageNumber.value, searchQuery.value, sortParam.value);
+  }
+
   fetchCompanies();
 });
 </script>
@@ -116,9 +170,11 @@ onMounted(() => {
     :active-sort="activeSort"
     :active-ordering="activeOrdering"
     :is-fetching-list="isFetchingList"
+    :show-pagination-footer="!!companies.length"
     @update:current-page="onPageChange"
     @update:sort="handleSort"
     @search="onSearch"
+    @create="openCreateCompanyDialog"
   >
     <div v-if="isFetchingList" class="flex items-center justify-center p-8">
       <span class="text-n-slate-11 text-base">{{
@@ -133,7 +189,7 @@ onMounted(() => {
         t('COMPANIES.EMPTY_STATE.TITLE')
       }}</span>
     </div>
-    <div v-else class="flex flex-col gap-4 p-4">
+    <div v-else class="flex flex-col gap-4">
       <CompaniesCard
         v-for="company in companies"
         :id="company.id"
@@ -141,10 +197,15 @@ onMounted(() => {
         :name="company.name"
         :domain="company.domain"
         :contacts-count="company.contactsCount || 0"
-        :description="company.description"
         :avatar-url="company.avatarUrl"
-        :updated-at="company.updatedAt"
+        :last-activity-at="company.lastActivityAt"
+        @show-company="showCompany"
       />
     </div>
+    <CompanyCreateDialog
+      ref="createCompanyDialogRef"
+      :is-loading="isCreatingCompany"
+      @create="createCompany"
+    />
   </CompaniesListLayout>
 </template>
