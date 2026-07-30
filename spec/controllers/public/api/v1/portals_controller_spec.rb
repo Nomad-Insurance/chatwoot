@@ -47,7 +47,8 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
         get "/hc/#{portal.slug}/en"
 
         expect(response).to have_http_status(:success)
-        expect(response.body).to include('<link rel="icon" href=')
+        expect(response.body).to include('<link rel="icon" href="/rails/active_storage/blobs/redirect/')
+        expect(response.body).to include('<img src="/rails/active_storage/blobs/redirect/')
       end
     end
 
