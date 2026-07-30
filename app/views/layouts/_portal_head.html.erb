@@ -20,7 +20,7 @@
 <% end %>
 
 <% if @portal.logo.present? %>
-  <link rel="icon" href="<%= url_for(@portal.logo) %>">
+  <link rel="icon" href="<%= rails_blob_path(@portal.logo, only_path: true) %>">
 <% end %>
 
 <% unless @theme_from_params.blank? %>

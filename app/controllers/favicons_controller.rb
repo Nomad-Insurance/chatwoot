@@ -7,8 +7,7 @@ class FaviconsController < ActionController::Base
 
     account = AccountForHost.call(request.host)
     if account&.logo_thumbnail&.attached?
-      variant = account.logo_thumbnail.variant(resize_to_fill: [size.to_i, size.to_i])
-      redirect_to url_for(variant.processed)
+      redirect_to rails_blob_path(account.logo_thumbnail, only_path: true)
     else
       send_global_favicon(size)
     end
