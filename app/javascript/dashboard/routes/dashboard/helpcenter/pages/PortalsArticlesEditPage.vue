@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { PORTALS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
-import { buildPortalArticleURL } from 'dashboard/helper/portalHelper';
+import { buildPortalPreviewURL } from 'dashboard/helper/portalHelper';
+import ArticlesAPI from 'dashboard/api/helpCenter/articles';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 
 import ArticleEditor from 'dashboard/components-next/HelpCenter/Pages/ArticleEditorPage/ArticleEditor.vue';
@@ -20,25 +21,8 @@ const articleById = useMapGetter('articles/articleById');
 
 const article = computed(() => articleById.value(articleSlug));
 
-const portalBySlug = useMapGetter('portals/portalBySlug');
-
-const portal = computed(() => portalBySlug.value(portalSlug));
-
 const isUpdating = ref(false);
 const isSaved = ref(false);
-
-const articleLink = computed(() => {
-  const { slug: categorySlug, locale: categoryLocale } = article.value.category;
-  const { slug: articleSlugValue } = article.value;
-  const portalCustomDomain = portal.value?.custom_domain;
-  return buildPortalArticleURL(
-    portalSlug,
-    categorySlug,
-    categoryLocale,
-    articleSlugValue,
-    portalCustomDomain
-  );
-});
 
 const saveArticle = async ({ ...values }) => {
   isUpdating.value = true;
@@ -91,11 +75,24 @@ const fetchArticleDetails = () => {
   });
 };
 
-const previewArticle = () => {
-  window.open(articleLink.value, '_blank');
-  useTrack(PORTALS_EVENTS.PREVIEW_ARTICLE, {
-    status: article.value?.status,
-  });
+const previewArticle = async () => {
+  // Open synchronously so the browser does not block the tab after the API call.
+  const previewWindow = window.open('', '_blank');
+  if (previewWindow) previewWindow.opener = null;
+  try {
+    const { data } = await ArticlesAPI.previewArticle({
+      id: articleSlug,
+      portalSlug,
+    });
+    const url = buildPortalPreviewURL(portalSlug, article.value.slug, data);
+    if (previewWindow) previewWindow.location = url;
+    useTrack(PORTALS_EVENTS.PREVIEW_ARTICLE, {
+      status: article.value?.status,
+    });
+  } catch (error) {
+    previewWindow?.close();
+    useAlert(t('HELP_CENTER.EDIT_ARTICLE_PAGE.API.ERROR'));
+  }
 };
 
 onMounted(fetchArticleDetails);

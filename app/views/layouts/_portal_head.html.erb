@@ -1,4 +1,7 @@
 <meta charset="utf-8">
+<% if canonical_url.present? %>
+  <link rel="canonical" href="<%= canonical_url %>">
+<% end %>
 <meta name="viewport" content="initial-scale=1">
 <meta name="turbo-cache-control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1">

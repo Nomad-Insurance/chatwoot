@@ -18,6 +18,18 @@ class Api::V1::Accounts::ArticlesController < Api::V1::Accounts::BaseController
                 end
   end
 
+  def preview
+    return head :not_found if @portal.archived?
+
+    origin = PortalHostPolicy.new(@portal).preview_origin(request)
+    return render json: { error: 'No authorized Help Center hostname is configured' }, status: :unprocessable_entity if origin.blank?
+
+    purpose = "help_center_preview:#{@portal.id}:#{HostNormalizer.normalize(URI.parse(origin).host)}"
+    token = @article.signed_id(purpose: purpose, expires_in: 15.minutes)
+    response.headers['Cache-Control'] = 'no-store'
+    render json: { base_url: origin, preview_token: token }
+  end
+
   def show; end
   def edit; end
 

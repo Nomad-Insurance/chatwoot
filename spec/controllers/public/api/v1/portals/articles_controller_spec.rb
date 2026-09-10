@@ -128,10 +128,10 @@ RSpec.describe 'Public Articles API', type: :request do
       expect(article.reload.views).to eq 0 # View count should not increment on show
     end
 
-    it 'does not increment the view count if the article is not published' do
+    it 'returns 404 without incrementing views for an unpublished article' do
       draft_article = create(:article, category: category, status: :draft, portal: portal, account_id: account.id, author_id: agent.id, views: 0)
       get "/hc/#{portal.slug}/articles/#{draft_article.slug}"
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:not_found)
       expect(draft_article.reload.views).to eq 0
     end
 
@@ -185,15 +185,12 @@ RSpec.describe 'Public Articles API', type: :request do
       expect(article.reload.views).to eq 1
     end
 
-    it 'serves a PNG image but does not increment view count for draft article' do
+    it 'returns 404 without incrementing views for a draft tracking pixel' do
       draft_article = create(:article, category: category, status: :draft, portal: portal, account_id: account.id, author_id: agent.id, views: 0)
 
       get "/hc/#{portal.slug}/articles/#{draft_article.slug}.png"
 
-      expect(response).to have_http_status(:success)
-      expect(response.headers['Content-Type']).to eq('image/png')
-      expect(response.headers['Cache-Control']).to include('max-age=86400')
-      expect(response.headers['Cache-Control']).to include('private')
+      expect(response).to have_http_status(:not_found)
       expect(draft_article.reload.views).to eq 0
     end
 

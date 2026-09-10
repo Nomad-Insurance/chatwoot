@@ -4,10 +4,10 @@ class AccountForHost
       host = HostNormalizer.normalize(raw_host)
       return if host.blank?
 
-      portal = Portal.find_by(custom_domain: host)
-      return portal.account if portal
+      account = AccountDomain.includes(:account).find_by(host: host)&.account
+      return account if account
 
-      AccountDomain.includes(:account).find_by(host: host)&.account
+      Portal.find_by(custom_domain: host)&.account
     end
   end
 end

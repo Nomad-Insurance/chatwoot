@@ -1,4 +1,4 @@
-<% if @article.present? %>
+<% if @article&.published? && !@preview %>
 <script>
   (function() {
     let viewTracked = false;

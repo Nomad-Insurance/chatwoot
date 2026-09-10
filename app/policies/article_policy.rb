@@ -11,6 +11,10 @@ class ArticlePolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def preview?
+    show?
+  end
+
   def edit?
     @account_user.administrator?
   end

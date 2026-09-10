@@ -25,16 +25,13 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       expect(response).to have_http_status(:success)
     end
 
-    it 'Throws unauthorised error for unknown domain' do
+    it 'redirects an old portal URL to its canonical custom domain' do
       portal.update(custom_domain: 'www.something.com')
 
       get "/hc/#{portal.slug}/en"
 
-      expect(response).to have_http_status(:unauthorized)
-      json_response = response.parsed_body
-
-      expect(json_response['error']).to eql "Domain: www.example.com is not registered with us. \
-      Please send us an email at support@chatwoot.com with the custom domain name and account API key"
+      expect(response).to have_http_status(:moved_permanently)
+      expect(response).to redirect_to("https://www.something.com/hc/#{portal.slug}/en")
     end
 
     context 'when portal has a logo' do
