@@ -24,6 +24,19 @@ RSpec.describe 'Enterprise Articles API', type: :request do
     agent_with_role_account_user
   end
 
+  describe 'POST /api/v1/accounts/:account_id/portals/:portal_slug/articles/:id/preview' do
+    it 'preserves knowledge_base_manage preview access' do
+      portal.update!(custom_domain: 'help.example.com')
+      article.update!(status: :draft)
+      post "/api/v1/accounts/#{account.id}/portals/#{portal.slug}/articles/#{article.id}/preview",
+           headers: agent_with_role.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['base_url']).to eq('https://help.example.com')
+      expect(response.parsed_body['preview_token']).to be_present
+    end
+  end
+
   describe 'GET /api/v1/accounts/:account_id/portals/:portal_slug/articles/:id' do
     context 'when it is an authenticated user' do
       it 'returns success for agents with knowledge_base_manage permission' do

@@ -1,5 +1,4 @@
 class Public::Api::V1::Portals::SearchController < Public::Api::V1::Portals::BaseController
-  before_action :ensure_custom_domain_request, only: [:index]
   before_action :portal
   before_action :set_portal_layout
   before_action :set_view_variant

@@ -406,6 +406,7 @@ Rails.application.routes.draw do
               end
             end
             resources :articles do
+              post :preview, on: :member
               post :reorder, on: :collection
             end
           end
@@ -600,6 +601,7 @@ Rails.application.routes.draw do
   get 'hc/:slug/:locale/categories', to: 'public/api/v1/portals/categories#index'
   get 'hc/:slug/:locale/categories/:category_slug', to: 'public/api/v1/portals/categories#show', as: :public_portal_category
   get 'hc/:slug/:locale/categories/:category_slug/articles', to: 'public/api/v1/portals/articles#index'
+  get 'hc/:slug/articles/:article_slug/preview', to: 'public/api/v1/portals/article_previews#show', as: :public_portal_article_preview
   get 'hc/:slug/articles/:article_slug.png', to: 'public/api/v1/portals/articles#tracking_pixel'
   get 'hc/:slug/articles/:article_slug.md', to: 'public/api/v1/portals/articles#show_markdown', as: :public_portal_article_markdown,
                                             defaults: { format: :md }

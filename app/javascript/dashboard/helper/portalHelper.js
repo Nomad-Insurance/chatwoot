@@ -53,6 +53,24 @@ export const buildPortalArticleURL = (
   return `${portalURL}/articles/${articleSlug}`;
 };
 
+// The authenticated API selects the host and signs the preview authorization.
+export const buildPortalPreviewURL = (
+  portalSlug,
+  articleSlug,
+  { base_url: baseURL, preview_token: previewToken }
+) => {
+  if (!baseURL || !previewToken) {
+    throw new Error('No authorized preview URL available');
+  }
+
+  const url = new URL(
+    `/hc/${encodeURIComponent(portalSlug)}/articles/${encodeURIComponent(articleSlug)}/preview`,
+    baseURL
+  );
+  url.searchParams.set('preview_token', previewToken);
+  return url.toString();
+};
+
 export const getArticleStatus = status => {
   switch (status) {
     case 'draft':

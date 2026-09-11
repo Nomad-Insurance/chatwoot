@@ -15,6 +15,19 @@ RSpec.describe 'Public Articles API', type: :request do
         expect(Article).to have_received(:vector_search)
       end
 
+      it 'rejects cross-tenant searches before invoking vector search' do
+        other_account = create(:account)
+        AccountDomain.create!(account: other_account, host: 'other.example.com')
+        host! 'other.example.com'
+        allow(Article).to receive(:vector_search)
+
+        get "/hc/#{portal.slug}/en/articles.json", params: { query: 'private' }
+        expect(response).to have_http_status(:not_found)
+        get "/hc/#{portal.slug}/en/search", params: { query: 'private' }
+        expect(response).to have_http_status(:not_found)
+        expect(Article).not_to have_received(:vector_search)
+      end
+
       it 'does not use vector search for whitespace-only queries' do
         allow(Article).to receive(:vector_search)
 

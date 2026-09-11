@@ -1,11 +1,17 @@
 class Public::Api::V1::Portals::BaseController < PublicController
   include SwitchLocale
 
+  before_action :authorize_portal_host
+  before_action :load_public_article
   before_action :show_plain_layout
   before_action :set_color_scheme
   before_action :set_global_config
   around_action :set_locale
   after_action :allow_iframe_requests
+
+  rescue_from ActiveRecord::RecordNotFound, with: -> { head :not_found }
+
+  helper_method :canonical_url
 
   PORTAL_LAYOUTS = %w[classic documentation].freeze
 
@@ -31,30 +37,48 @@ class Public::Api::V1::Portals::BaseController < PublicController
     @portal ||= Portal.find_by!(slug: params[:slug], archived: false)
   end
 
+  def authorize_portal_host
+    portal
+    @portal_host_policy = PortalHostPolicy.new(@portal)
+    return if @portal_host_policy.allowed?(request.host)
+
+    origin = @portal_host_policy.canonical_origin
+    if origin && published_page?
+      redirect_to "#{origin}#{request.path}", status: :moved_permanently, allow_other_host: true
+    else
+      head :not_found
+    end
+  end
+
+  # Only existing public HTML pages qualify for migration redirects.
+  # Previews, searches, API responses and tracking requests never redirect.
+  def published_page?
+    return false unless action_name == 'show' && request.format.html?
+    return @portal.articles.published.exists?(slug: params[:article_slug]) if params[:article_slug].present?
+    return public_category? if params[:category_slug].present?
+
+    params[:locale].blank? || @portal.public_locale_codes.include?(params[:locale])
+  end
+
+  def public_category?
+    @portal.categories.exists?(slug: params[:category_slug], locale: params[:locale])
+  end
+
+  def load_public_article
+    return if params[:article_slug].blank?
+
+    @article = @portal.articles.published.find_by!(slug: params[:article_slug])
+  end
+
+  def canonical_url
+    return unless published_page?
+
+    "#{@portal_host_policy.public_origin(request)}#{request.path}"
+  end
+
   def set_locale(&)
-    switch_locale_with_portal(&) if params[:locale].present?
-    switch_locale_with_article(&) if params[:article_slug].present?
-
-    yield
-  end
-
-  def switch_locale_with_portal(&)
-    @locale = validate_and_get_locale(params[:locale])
-
-    I18n.with_locale(@locale, &)
-  end
-
-  def switch_locale_with_article(&)
-    article = Article.find_by(slug: params[:article_slug])
-    Rails.logger.info "Article: not found for slug: #{params[:article_slug]}"
-    render_404 && return if article.blank?
-
-    article_locale = if article.category.present?
-                       article.category.locale
-                     else
-                       article.locale
-                     end
-    @locale = validate_and_get_locale(article_locale)
+    locale = params[:locale].presence || @article&.category&.locale || @article&.locale || @portal.default_locale
+    @locale = validate_and_get_locale(locale)
     I18n.with_locale(@locale, &)
   end
 

@@ -2,6 +2,7 @@ import {
   buildLocaleMenuItems,
   buildPortalArticleURL,
   buildPortalURL,
+  buildPortalPreviewURL,
 } from '../portalHelper';
 
 describe('PortalHelper', () => {
@@ -70,6 +71,52 @@ describe('PortalHelper', () => {
       expect(
         buildPortalArticleURL('handbook', 'culture', 'fr', 'article-slug')
       ).toEqual('https://app.chatwoot.com/hc/handbook/articles/article-slug');
+    });
+  });
+
+  describe('buildPortalPreviewURL', () => {
+    it.each([
+      'https://help.expatinsurance.com',
+      'https://portal.expatinsurance.com',
+      'https://help.example.com',
+    ])('uses the server-authorized origin %s', baseURL => {
+      window.chatwootConfig = {
+        hostURL: 'https://portal.nomadinsurance.com',
+      };
+      expect(
+        buildPortalPreviewURL('expat-insurance-helpdesk', 'draft-article', {
+          base_url: baseURL,
+          preview_token: 'signed+token=',
+        })
+      ).toEqual(
+        `${baseURL}/hc/expat-insurance-helpdesk/articles/draft-article/preview?preview_token=signed%2Btoken%3D`
+      );
+    });
+
+    it('never falls back to the global host or ordinary public article URL', () => {
+      window.chatwootConfig = {
+        hostURL: 'https://portal.nomadinsurance.com',
+        helpCenterURL: 'https://help.example.com',
+      };
+      expect(() =>
+        buildPortalPreviewURL('expat', 'draft', { preview_token: 'token' })
+      ).toThrow('No authorized preview URL available');
+      expect(() =>
+        buildPortalPreviewURL('expat', 'draft', {
+          base_url: 'https://portal.expatinsurance.com',
+        })
+      ).toThrow('No authorized preview URL available');
+    });
+
+    it('encodes path identifiers and uses the dedicated preview route', () => {
+      expect(
+        buildPortalPreviewURL('portal name', 'article/name', {
+          base_url: 'https://help.example.com/',
+          preview_token: 'token',
+        })
+      ).toEqual(
+        'https://help.example.com/hc/portal%20name/articles/article%2Fname/preview?preview_token=token'
+      );
     });
   });
 
