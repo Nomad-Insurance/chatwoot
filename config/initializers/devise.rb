@@ -15,7 +15,7 @@ Devise.setup do |config|
   config.mailer_sender = ENV.fetch('MAILER_SENDER_EMAIL', 'Chatwoot <accounts@chatwoot.com>')
 
   # Configure the class responsible to send e-mails.
-  # config.mailer = 'Devise::Mailer'
+  config.mailer = 'DeviseOverrides::Mailer'
 
   # Configure the parent class responsible to send e-mails.
   config.parent_mailer = 'ApplicationMailer'

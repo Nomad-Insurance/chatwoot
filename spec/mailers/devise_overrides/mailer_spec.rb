@@ -1,22 +1,22 @@
 require 'rails_helper'
 
-RSpec.describe DeviseConfirmationReplyTo do
+RSpec.describe DeviseOverrides::Mailer do
   let(:account) { create(:account) }
   let(:user) { create(:user, account: account) }
 
   it 'preserves an explicit confirmation reply-to' do
-    mail = Devise::Mailer.confirmation_instructions(user, nil, reply_to: user.email)
+    mail = Devise.mailer.confirmation_instructions(user, nil, reply_to: user.email)
     expect(mail.reply_to).to eq([user.email])
   end
 
   it 'does not apply the confirmation default when From is overridden' do
-    mail = Devise::Mailer.confirmation_instructions(user, nil, from: user.email)
+    mail = Devise.mailer.confirmation_instructions(user, nil, from: user.email)
     expect(mail.from).to eq([user.email])
     expect(mail.reply_to).to eq([Mail::Address.new(Devise.mailer_sender).address])
   end
 
   it 'preserves the password reset reply-to fallback' do
-    mail = Devise::Mailer.reset_password_instructions(user, nil)
+    mail = Devise.mailer.reset_password_instructions(user, nil)
     expect(mail.reply_to).to eq([Mail::Address.new(Devise.mailer_sender).address])
   end
 
