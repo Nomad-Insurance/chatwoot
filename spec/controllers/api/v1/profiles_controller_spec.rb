@@ -306,7 +306,7 @@ RSpec.describe 'Profile API', type: :request do
           post '/api/v1/profile/resend_confirmation',
                headers: agent.create_new_auth_token,
                as: :json
-        end.to have_enqueued_mail(Devise::Mailer, :confirmation_instructions)
+        end.to have_enqueued_mail(Devise.mailer, :confirmation_instructions)
 
         expect(response).to have_http_status(:success)
       end
