@@ -2,6 +2,7 @@ class ApplicationMailer < ActionMailer::Base
   include ActionView::Helpers::SanitizeHelper
 
   default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Nomad Insurance <support@nomadinsurance.com>')
+  default reply_to: default[:from]
   before_action { ensure_current_account(params.try(:[], :account)) }
   before_action :warn_if_account_missing, if: -> { Rails.env.development? || Rails.env.test? }
   around_action :switch_locale
