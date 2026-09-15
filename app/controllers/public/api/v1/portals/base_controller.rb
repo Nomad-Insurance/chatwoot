@@ -73,7 +73,7 @@ class Public::Api::V1::Portals::BaseController < PublicController
   def canonical_url
     return unless published_page?
 
-    "#{@portal_host_policy.public_origin(request)}#{request.path}"
+    @portal_host_policy.article_canonical_url(@article) || "#{@portal_host_policy.public_origin(request)}#{request.path}"
   end
 
   def set_locale(&)
