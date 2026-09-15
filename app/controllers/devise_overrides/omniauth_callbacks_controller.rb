@@ -3,21 +3,7 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
 
   def omniauth_success
     if auth_hash.blank?
-      omniauth_error = request.env['omniauth.error']
-      error_type = request.env['omniauth.error.type']
-      error_strategy = request.env['omniauth.error.strategy']&.name
-      available_omniauth_keys = request.env.keys.grep(/\Aomniauth\./).sort
-
-      Rails.logger.error(
-        "OmniAuth failure for #{params[:provider]}: " \
-        "#{{
-          type: error_type,
-          error_class: omniauth_error&.class&.name,
-          error_message: omniauth_error&.message,
-          strategy: error_strategy,
-          env_keys: available_omniauth_keys
-        }.compact.to_json}"
-      )
+      log_omniauth_failure
       return redirect_to login_page_url(error: 'oauth-failed')
     end
 
@@ -27,6 +13,24 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
   end
 
   private
+
+  def log_omniauth_failure
+    omniauth_error = request.env['omniauth.error']
+    error_type = request.env['omniauth.error.type']
+    error_strategy = request.env['omniauth.error.strategy']&.name
+    available_omniauth_keys = request.env.keys.grep(/\Aomniauth\./).sort
+
+    Rails.logger.error(
+      "OmniAuth failure for #{params[:provider]}: " \
+      "#{{
+        type: error_type,
+        error_class: omniauth_error&.class&.name,
+        error_message: omniauth_error&.message,
+        strategy: error_strategy,
+        env_keys: available_omniauth_keys
+      }.compact.to_json}"
+    )
+  end
 
   def sign_in_user
     # Capture before skip_confirmation! sets confirmed_at, which would
