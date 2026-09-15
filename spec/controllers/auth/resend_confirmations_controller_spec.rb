@@ -10,7 +10,7 @@ RSpec.describe 'Resend Confirmations API', type: :request do
       it 'sends confirmation instructions and returns 200' do
         expect do
           post '/resend_confirmation', params: { email: email }, as: :json
-        end.to have_enqueued_mail(Devise::Mailer, :confirmation_instructions)
+        end.to have_enqueued_mail(Devise.mailer, :confirmation_instructions)
 
         expect(response).to have_http_status(:ok)
       end
@@ -50,7 +50,7 @@ RSpec.describe 'Resend Confirmations API', type: :request do
             post '/resend_confirmation',
                  params: { email: email, h_captcha_client_response: 'valid-token' },
                  as: :json
-          end.to have_enqueued_mail(Devise::Mailer, :confirmation_instructions)
+          end.to have_enqueued_mail(Devise.mailer, :confirmation_instructions)
 
           expect(response).to have_http_status(:ok)
         end

@@ -1,4 +1,4 @@
-class FaviconsController < ActionController::Base
+class FaviconsController < ApplicationController
   SIZES = %w[16 32 36 48 72 96 144 192].freeze
 
   def show

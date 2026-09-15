@@ -1,4 +1,4 @@
-class ManifestsController < ActionController::Base
+class ManifestsController < ApplicationController
   def show
     account = AccountForHost.call(request.host)
     branding = BrandingConfig.new(account: account)

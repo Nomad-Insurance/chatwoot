@@ -7,7 +7,7 @@ RSpec.describe 'Devise::Mailer' do
     let(:account) { create(:account) }
     let!(:confirmable_user) { create(:user, inviter: inviter_val, account: account) }
     let(:inviter_val) { nil }
-    let(:mail) { Devise::Mailer.confirmation_instructions(confirmable_user.reload, nil, {}) }
+    let(:mail) { Devise.mailer.confirmation_instructions(confirmable_user.reload, nil, {}) }
     let(:mail_body) { CGI.unescapeHTML(mail.body.to_s) }
 
     before do
@@ -40,7 +40,7 @@ RSpec.describe 'Devise::Mailer' do
 
     it 'shows the default confirmation state' do
       expect(mail_body).to include('Confirm your email to get started')
-      expect(mail_body).to include('Welcome to Chatwoot. We just need to verify your email address before you can start using your account.')
+      expect(mail_body).to include('Welcome to Nomad Insurance. We just need to verify your email address before you can start using your account.')
       expect(mail_body).to include('Confirm my account')
       expect(mail_body).not_to include('Workspace invitation')
     end
@@ -55,7 +55,7 @@ RSpec.describe 'Devise::Mailer' do
 
       it 'refers to the inviter and their account' do
         expect(mail_body).to include("You're invited to join #{account.name}")
-        expect(mail_body).to include("#{inviter_val.name} invited you to join the #{account.name} workspace on Chatwoot.")
+        expect(mail_body).to include("#{inviter_val.name} invited you to join the #{account.name} workspace on Nomad Insurance.")
         expect(mail_body).to include('Accept invitation')
         expect(mail_body).not_to include('Confirm your email to get started')
       end
@@ -72,7 +72,7 @@ RSpec.describe 'Devise::Mailer' do
       end
 
       it 'sends a confirmation link' do
-        confirmation_mail = Devise::Mailer.confirmation_instructions(confirmable_user.reload, nil, {})
+        confirmation_mail = Devise.mailer.confirmation_instructions(confirmable_user.reload, nil, {})
         confirmation_body = CGI.unescapeHTML(confirmation_mail.body.to_s)
 
         expect(confirmation_body).to include('Confirm your new email address')
@@ -90,7 +90,7 @@ RSpec.describe 'Devise::Mailer' do
       end
 
       it 'sends a confirmation link' do
-        confirmation_mail = Devise::Mailer.confirmation_instructions(confirmable_user.reload, nil, {})
+        confirmation_mail = Devise.mailer.confirmation_instructions(confirmable_user.reload, nil, {})
         confirmation_body = CGI.unescapeHTML(confirmation_mail.body.to_s)
 
         expect(confirmation_body).to include('Confirm your new email address')
@@ -107,7 +107,7 @@ RSpec.describe 'Devise::Mailer' do
       end
 
       it 'send instructions with the link to login' do
-        confirmation_mail = Devise::Mailer.confirmation_instructions(confirmable_user.reload, nil, {})
+        confirmation_mail = Devise.mailer.confirmation_instructions(confirmable_user.reload, nil, {})
         confirmation_body = CGI.unescapeHTML(confirmation_mail.body.to_s)
 
         expect(confirmation_body).to include('Your account is ready')
