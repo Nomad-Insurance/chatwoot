@@ -1,5 +1,9 @@
+require 'json'
+
 # Shared by public routes and authenticated preview issuance.
 class PortalHostPolicy
+  ARTICLE_CANONICALS = JSON.parse(File.read(File.expand_path('../../config/help_center_article_canonicals.json', __dir__))).freeze
+
   def initialize(portal)
     @portal = portal
   end
@@ -33,6 +37,17 @@ class PortalHostPolicy
     canonical_origin || self.class.shared_origin || request.base_url
   end
 
+  # Used only by the canonical-tag helper; never by redirects, sitemaps or previews.
+  def article_canonical_url(article)
+    config = ARTICLE_CANONICALS
+    return unless @portal.slug == config.fetch('portal_slug')
+    return unless article&.published? && article.locale == config.fetch('locale')
+    return unless article_belongs_to_portal?(article)
+    return unless config.fetch('included_slugs').include?(article.slug)
+
+    "#{config.fetch('website_origin')}#{config.fetch('website_prefix')}#{article.slug}"
+  end
+
   def self.shared_origin
     url = ENV['HELPCENTER_URL'].presence
     return unless url
@@ -45,6 +60,10 @@ class PortalHostPolicy
   end
 
   private
+
+  def article_belongs_to_portal?(article)
+    article.portal_id == @portal.id && article.account_id == @portal.account_id
+  end
 
   def custom_origin
     host = @portal.custom_domain.presence
